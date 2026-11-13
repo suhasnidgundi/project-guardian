@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FolderOpen, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,27 @@ interface FolderPickerProps {
 
 export function FolderPicker({ onScan, isScanning, lastPath }: FolderPickerProps) {
   const [path, setPath] = useState(lastPath ?? "");
+  const [isElectron, setIsElectron] = useState(false);
+
+  // Detect Electron after hydration to avoid SSR mismatch
+  useEffect(() => {
+    setIsElectron(!!window.electronAPI?.isElectron);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = path.trim();
     if (!trimmed) return;
     onScan(trimmed);
+  };
+
+  /** Open the native OS folder picker (Electron only) */
+  const handleBrowse = async () => {
+    if (!window.electronAPI) return;
+    const selected = await window.electronAPI.selectDirectory();
+    if (selected) {
+      setPath(selected);
+    }
   };
 
   return (
@@ -33,19 +48,40 @@ export function FolderPicker({ onScan, isScanning, lastPath }: FolderPickerProps
         >
           Root directory path
         </label>
-        <div className="relative">
-          <FolderOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="root-path-input"
-            type="text"
-            placeholder="/Users/you/Projects"
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
-            disabled={isScanning}
-            className="h-11 pl-10 font-mono text-sm"
-            autoComplete="off"
-            spellCheck={false}
-          />
+        <div className="relative flex gap-2">
+          <div className="relative flex-1">
+            <FolderOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="root-path-input"
+              type="text"
+              placeholder={
+                isElectron
+                  ? 'Click "Browse" or type a path…'
+                  : "/Users/you/Projects"
+              }
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              disabled={isScanning}
+              className="h-11 pl-10 font-mono text-sm"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+
+          {/* Native folder picker button — only visible inside Electron */}
+          {isElectron && (
+            <Button
+              id="browse-button"
+              type="button"
+              variant="outline"
+              onClick={handleBrowse}
+              disabled={isScanning}
+              className="h-11 shrink-0 cursor-pointer gap-2 border-border/60 transition-colors hover:bg-muted/60"
+            >
+              <FolderOpen className="h-4 w-4" />
+              Browse
+            </Button>
+          )}
         </div>
       </div>
 

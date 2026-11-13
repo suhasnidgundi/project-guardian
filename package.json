@@ -2,11 +2,16 @@
   "name": "project-guardian",
   "version": "0.1.0",
   "private": true,
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:compile": "tsc -p electron/tsconfig.json",
+    "electron:dev": "npm run electron:compile && concurrently --kill-others \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && npm run electron:compile && electron-builder --config electron-builder.yml --mac --win",
+    "electron:pack": "npm run electron:build"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -26,9 +31,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.0",
+    "electron": "^35.7.5",
+    "electron-builder": "^26.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^8.0.0"
   }
 }
